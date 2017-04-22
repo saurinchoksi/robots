@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/chox/code/robots/prj02_transforms/catkin_ws/devel/setup.sh

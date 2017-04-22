@@ -1,0 +1,2 @@
+marker_publisher:project2_solution
+-DCATKIN_DEVEL_PREFIX=/home/chox/code/robots/prj02_transforms/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/chox/code/robots/prj02_transforms/catkin_ws/install -G Unix Makefiles
