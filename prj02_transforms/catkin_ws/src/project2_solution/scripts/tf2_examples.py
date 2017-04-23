@@ -1,4 +1,4 @@
-#!/usr/bin/env python  
+#!/usr/bin/env python
 import rospy
 
 import numpy
@@ -8,24 +8,26 @@ import tf2_ros
 import geometry_msgs.msg
 
 def publish_transforms():
+
     t1 = geometry_msgs.msg.TransformStamped()
     t1.header.stamp = rospy.Time.now()
-    t1.header.frame_id = "world"
-    t1.child_frame_id = "F1"
-    t1.transform.translation.x = 1.0
+    t1.header.frame_id = "base_frame"
+    t1.child_frame_id = "object_frame"
+    t1.transform.translation.x = 0.0
     t1.transform.translation.y = 1.0
-    t1.transform.translation.z = 0.0
-    q1 = tf.transformations.quaternion_from_euler(1.0, 1.0, 1.0)
+    t1.transform.translation.z = 1.0
+    q1 = tf.transformations.quaternion_from_euler(0.79, 0.0, 0.79)
     t1.transform.rotation.x = q1[0]
     t1.transform.rotation.y = q1[1]
     t1.transform.rotation.z = q1[2]
     t1.transform.rotation.w = q1[3]
     br.sendTransform(t1)
 
+"""
     t2 = geometry_msgs.msg.TransformStamped()
     t2.header.stamp = rospy.Time.now()
-    t2.header.frame_id = "F1"
-    t2.child_frame_id = "F2"
+    t2.header.frame_id = "object_frame"
+    t2.child_frame_id = "robot_frame"
     t2.transform.translation.x = 1.0
     t2.transform.translation.y = 0.0
     t2.transform.translation.z = 0.0
@@ -39,11 +41,11 @@ def publish_transforms():
     T1 = numpy.dot(tf.transformations.translation_matrix((1.0, 1.0, 0.0)),
                    tf.transformations.quaternion_matrix(q1))
     T1_inverse = tf.transformations.inverse_matrix(T1)
- 
+
     t3 = geometry_msgs.msg.TransformStamped()
     t3.header.stamp = rospy.Time.now()
-    t3.header.frame_id = "F3"
-    t3.child_frame_id = "F4"
+    t3.header.frame_id = "robot_frame"
+    t3.child_frame_id = "camera_frame"
     tr3 = tf.transformations.translation_from_matrix(T1_inverse)
     t3.transform.translation.x = tr3[0]
     t3.transform.translation.y = tr3[1]
@@ -73,7 +75,7 @@ def publish_transforms():
     t4.transform.rotation.z = q4[2]
     t4.transform.rotation.w = q4[3]
     br.sendTransform(t4)
-
+"""
 if __name__ == '__main__':
     rospy.init_node('tf2_examples')
 
