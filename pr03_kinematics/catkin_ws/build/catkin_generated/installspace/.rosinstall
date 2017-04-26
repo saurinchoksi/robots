@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/chox/code/robots/pr03_kinematics/catkin_ws/install/setup.sh
