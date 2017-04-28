@@ -144,7 +144,7 @@ class ForwardKinematics(object):
 
                 T_Ji = tf.transformations.rotation_matrix(position, joints[i].axis)
                 T_Li = tf.transformations.translation_matrix(joints[i].origin.xyz)
-                T = numpy.dot(T_Li, T_Ji)
+                T = tf.transformations.concatenate_matrices(T_Li, T_Ji)
                 msgs.append(convert_to_message(T, link_names[i], link_names[i-1]))
 
         all_transforms.transforms = msgs
