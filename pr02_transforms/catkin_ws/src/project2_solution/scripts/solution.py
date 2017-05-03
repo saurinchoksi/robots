@@ -93,8 +93,6 @@ def publish_transforms():
     # get normalized camera to object translation vector
     # points from camera to object
     cTLo = tf.transformations.translation_from_matrix(cTo)
-    print "unit vector:", tf.transformations.unit_vector(cTLo)
-    print "vector norm:", tf.transformations.vector_norm(cTLo)
     v = tf.transformations.unit_vector(cTLo)
 
     # rotate camera around vector orthogonal to x axis and v
