@@ -26,12 +26,47 @@ def S_matrix(w):
 def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,
                       red_control, q_current, q0_desired):
     num_joints = len(joint_transforms)
-    dq = numpy.zeros(num_joints)
     #-------------------- Fill in your code here ---------------------------
+    p = 1 # proportional controller constant for calculating V_ee
+
+    ee_current_T_ee_desired = numpy.dot(tf.transformations.inverse_matrix(b_T_ee_current), b_T_ee_desired) #ee_current_T_ee_desired
+    translation = ee_current_T_ee_desired[:3,3]
+    rotation = ee_current_T_ee_desired[:3,:3]
+    inverse_rotation = tf.transformations.inverse_matrix(rotation)
+    angle, axis = rotation_from_matrix(ee_current_T_ee_desired)
+    rotation_vector = numpy.dot(angle, axis)
+
+    delta_X = numpy.zeros((6))
+
+    delta_X[:3] = translation
+    delta_X[3:] = rotation_vector
+
+    V_ee = delta_X * p
+
+    J = []
+    for b_T_j in joint_transforms:
+        j_T_ee = numpy.dot(tf.transformations.inverse_matrix(b_T_j), b_T_ee_current)
+        j_t_ee = j_T_ee[:3,3]
+
+        ee_T_j = numpy.dot(tf.transformations.inverse_matrix(b_T_ee_current), b_T_j)
+        ee_R_j = ee_T_j[:3,:3]
+
+        R_s = numpy.cross(-ee_R_j, j_t_ee)
+
+        V_j_tmp = numpy.zeros((6,6))
+        V_j_tmp[:3,:3] = ee_R_j
+        V_j_tmp[3:,3:] = ee_R_j
+        V_j_tmp[:3,3:] = R_s
+
+        J.append(V_j_tmp[:,5])
+
+    J_pinv = numpy.linalg.pinv(J, .01)
+
+    dq = numpy.dot(V_ee, J_pinv)
 
     #----------------------------------------------------------------------
     return dq
-    
+
 def convert_from_message(t):
     trans = tf.transformations.translation_matrix((t.translation.x,
                                                   t.translation.y,
@@ -114,26 +149,26 @@ class CartesianControl(object):
         self.mutex.acquire()
         self.q0_desired = command.data
         self.last_red_command_time = time.time()
-        self.mutex.release()        
-        
+        self.mutex.release()
+
     def timer_callback(self, event):
         msg = JointState()
         self.mutex.acquire()
         if time.time() - self.last_command_time < 0.5:
-            dq = cartesian_control(self.joint_transforms, 
+            dq = cartesian_control(self.joint_transforms,
                                    self.x_current, self.x_target,
                                    False, self.q_current, self.q0_desired)
             msg.velocity = dq
         elif time.time() - self.last_red_command_time < 0.5:
-            dq = cartesian_control(self.joint_transforms, 
+            dq = cartesian_control(self.joint_transforms,
                                    self.x_current, self.x_current,
                                    True, self.q_current, self.q0_desired)
             msg.velocity = dq
-        else:            
+        else:
             msg.velocity = numpy.zeros(7)
         self.mutex.release()
         self.pub_vel.publish(msg)
-        
+
     def joint_callback(self, joint_values):
         root = self.robot.get_root()
         T = tf.transformations.identity_matrix()
@@ -155,7 +190,7 @@ class CartesianControl(object):
         return tf.transformations.rotation_matrix(angle, rot_axis)
 
     def process_link_recursive(self, link, T, joint_values):
-        if link not in self.robot.child_map: 
+        if link not in self.robot.child_map:
             self.x_current = T
             return
         for i in range(0,len(self.robot.child_map[link])):
@@ -163,12 +198,12 @@ class CartesianControl(object):
             if joint_name not in self.robot.joint_map:
                 rospy.logerror("Joint not found in map")
                 continue
-            current_joint = self.robot.joint_map[joint_name]        
+            current_joint = self.robot.joint_map[joint_name]
 
-            trans_matrix = tf.transformations.translation_matrix((current_joint.origin.xyz[0], 
+            trans_matrix = tf.transformations.translation_matrix((current_joint.origin.xyz[0],
                                                                   current_joint.origin.xyz[1],
                                                                   current_joint.origin.xyz[2]))
-            rot_matrix = tf.transformations.euler_matrix(current_joint.origin.rpy[0], 
+            rot_matrix = tf.transformations.euler_matrix(current_joint.origin.rpy[0],
                                                          current_joint.origin.rpy[1],
                                                          current_joint.origin.rpy[2], 'rxyz')
             origin_T = numpy.dot(trans_matrix, rot_matrix)
@@ -182,14 +217,14 @@ class CartesianControl(object):
                 self.joint_transforms.append(aligned_joint_T)
                 index = joint_values.name.index(current_joint.name)
                 angle = joint_values.position[index]
-                joint_rot_T = tf.transformations.rotation_matrix(angle, 
+                joint_rot_T = tf.transformations.rotation_matrix(angle,
                                                                  numpy.asarray(current_joint.axis))
-                next_link_T = numpy.dot(current_joint_T, joint_rot_T) 
+                next_link_T = numpy.dot(current_joint_T, joint_rot_T)
             else:
                 next_link_T = current_joint_T
 
             self.process_link_recursive(next_link, next_link_T, joint_values)
-        
+
 if __name__ == '__main__':
     rospy.init_node('cartesian_control', anonymous=True)
     cc = CartesianControl()
