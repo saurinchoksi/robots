@@ -1,0 +1,8 @@
+prefix=/home/chox/code/robots/pr05_motion_planning/catkin_ws/devel
+
+Name: robot_sim
+Description: Description of robot_sim
+Version: 0.0.0
+Cflags: -I/home/chox/code/robots/pr05_motion_planning/catkin_ws/src/robot_sim/include
+Libs: -L/home/chox/code/robots/pr05_motion_planning/catkin_ws/devel/lib -lrobot_sim
+Requires: roscpp sensor_msgs trajectory_msgs urdf

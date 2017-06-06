@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/chox/code/robots/pr05_motion_planning/catkin_ws/devel/setup.sh

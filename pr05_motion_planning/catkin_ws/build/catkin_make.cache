@@ -1,0 +1,2 @@
+lwr_robot/lwr_defs:lwr_robot_moveit_config:motion_planning:robot_sim
+-DCATKIN_DEVEL_PREFIX=/home/chox/code/robots/pr05_motion_planning/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/chox/code/robots/pr05_motion_planning/catkin_ws/install -G Unix Makefiles
