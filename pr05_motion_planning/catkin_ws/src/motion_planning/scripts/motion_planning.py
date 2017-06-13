@@ -28,7 +28,7 @@ def convert_to_message(T):
     t.orientation.x = orientation[0]
     t.orientation.y = orientation[1]
     t.orientation.z = orientation[2]
-    t.orientation.w = orientation[3]        
+    t.orientation.w = orientation[3]
     return t
 
 def convert_from_message(msg):
@@ -36,8 +36,8 @@ def convert_from_message(msg):
                                               msg.orientation.y,
                                               msg.orientation.z,
                                               msg.orientation.w))
-    T = tf.transformations.translation_matrix((msg.position.x, 
-                                               msg.position.y, 
+    T = tf.transformations.translation_matrix((msg.position.x,
+                                               msg.position.y,
                                                msg.position.z))
     return numpy.dot(T,R)
 
@@ -46,8 +46,8 @@ def convert_from_trans_message(msg):
                                               msg.rotation.y,
                                               msg.rotation.z,
                                               msg.rotation.w))
-    T = tf.transformations.translation_matrix((msg.translation.x, 
-                                               msg.translation.y, 
+    T = tf.transformations.translation_matrix((msg.translation.x,
+                                               msg.translation.y,
                                                msg.translation.z))
     return numpy.dot(T,R)
 
@@ -81,7 +81,7 @@ class MoveArm(object):
                             "lwr_arm_6_joint"]
 
         # Subscribes to information about what the current joint values are.
-        rospy.Subscriber("/joint_states", sensor_msgs.msg.JointState, 
+        rospy.Subscriber("/joint_states", sensor_msgs.msg.JointState,
                          self.joint_states_callback)
 
         # Subscribe to command for motion planning goal
@@ -89,8 +89,8 @@ class MoveArm(object):
                          self.move_arm_cb)
 
         # Publish trajectory command
-        self.pub_trajectory = rospy.Publisher("/joint_trajectory", trajectory_msgs.msg.JointTrajectory, 
-                                              queue_size=1)        
+        self.pub_trajectory = rospy.Publisher("/joint_trajectory", trajectory_msgs.msg.JointTrajectory,
+                                              queue_size=1)
 
         # Initialize variables
         self.joint_state = sensor_msgs.msg.JointState()
@@ -102,7 +102,7 @@ class MoveArm(object):
 
         # Wait for validity check service
         rospy.wait_for_service("check_state_validity")
-        self.state_valid_service = rospy.ServiceProxy('check_state_validity',  
+        self.state_valid_service = rospy.ServiceProxy('check_state_validity',
                                                       moveit_msgs.srv.GetStateValidity)
         print "State validity service ready"
 
@@ -110,7 +110,7 @@ class MoveArm(object):
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
         self.group_name = "lwr_arm"
-        self.group = moveit_commander.MoveGroupCommander(self.group_name) 
+        self.group = moveit_commander.MoveGroupCommander(self.group_name)
         print "MoveIt! interface ready"
 
         # Options
@@ -130,8 +130,8 @@ class MoveArm(object):
         i = joint_state.name.index(name)
         joint_state.position[i] = q
 
-    """ Given a complete joint_state data structure, this function finds the values for 
-    our arm's set of joints in a particular order and returns a list q[] containing just 
+    """ Given a complete joint_state data structure, this function finds the values for
+    our arm's set of joints in a particular order and returns a list q[] containing just
     those values.
     """
     def q_from_joint_state(self, joint_state):
@@ -140,18 +140,18 @@ class MoveArm(object):
             q.append(self.get_joint_val(joint_state, self.joint_names[i]))
         return q
 
-    """ Given a list q[] of joint values and an already populated joint_state, this 
-    function assumes that the passed in values are for a our arm's set of joints in 
-    a particular order and edits the joint_state data structure to set the values 
+    """ Given a list q[] of joint values and an already populated joint_state, this
+    function assumes that the passed in values are for a our arm's set of joints in
+    a particular order and edits the joint_state data structure to set the values
     to the ones passed in.
     """
     def joint_state_from_q(self, joint_state, q):
         for i in range(0,self.num_joints):
             self.set_joint_val(joint_state, q[i], self.joint_names[i])
 
-    """ This function will perform IK for a given transform T of the end-effector. It 
-    returns a list q[] of 7 values, which are the result positions for the 7 joints of 
-    the left arm, ordered from proximal to distal. If no IK solution is found, it 
+    """ This function will perform IK for a given transform T of the end-effector. It
+    returns a list q[] of 7 values, which are the result positions for the 7 joints of
+    the left arm, ordered from proximal to distal. If no IK solution is found, it
     returns an empy list.
     """
     def IK(self, T_goal):
@@ -171,9 +171,9 @@ class MoveArm(object):
             q = self.q_from_joint_state(res.solution.joint_state)
         return q
 
-    """ This function checks if a set of joint angles q[] creates a valid state, or 
-    one that is free of collisions. The values in q[] are assumed to be values for 
-    the joints of the left arm, ordered from proximal to distal. 
+    """ This function checks if a set of joint angles q[] creates a valid state, or
+    one that is free of collisions. The values in q[] are assumed to be values for
+    the joints of the left arm, ordered from proximal to distal.
     """
     def is_state_valid(self, q):
         req = moveit_msgs.srv.GetStateValidityRequest()
@@ -185,9 +185,9 @@ class MoveArm(object):
         req.robot_state.joint_state = current_joint_state
         res = self.state_valid_service(req)
         return res.valid
-               
+
     def motion_plan(self, q_start, q_goal, q_min, q_max):
-        
+
         # Replace this with your code
         q_list = [q_start, q_goal]
 
@@ -237,7 +237,7 @@ class MoveArm(object):
             print "Trajectory received with " + str(len(trajectory.points)) + " points"
             self.execute(trajectory)
         self.mutex.release()
-        
+
     def joint_states_callback(self, joint_state):
         self.mutex.acquire()
         self.joint_state = joint_state
