@@ -186,12 +186,93 @@ class MoveArm(object):
         res = self.state_valid_service(req)
         return res.valid
 
+
+    def get_closest_point(self, tree, random_point):
+        closest_dist = float("inf")
+        closest_point = None
+        for point in tree:
+            dist = numpy.linalg.norm(random_point - point)
+            if dist < closest_dist:
+                closest_dist = dist
+                closest_point = point
+        return closest_point
+
+    def get_target_point(self, closest_point, random_point):
+        vector = random_point - closest_point
+        unit_vector = vector / numpy.linalg.norm(vector)
+
+        target_vector = unit_vector * 0.5
+        target_point = closest_point + target_vector
+
+        print "old target_point", target_point
+
+        step_vector = unit_vector * .05
+        step_point = closest_point
+
+        while numpy.linalg.norm(target_point - step_point) > .05:
+            if self.is_state_valid:
+                step_point = step_point + step_vector
+            else:
+                step_point = step_point - step_vector
+                print "collision"
+                break
+
+        return step_point
+
+    def check_clear_to_goal(self, point, goal):
+        vector = goal - point
+        print vector
+        unit_vector = vector / numpy.linalg.norm(vector)
+        print unit_vector
+
+        step_vector = unit_vector * .01
+        step_point = point
+
+        while numpy.linalg.norm(goal - step_point) > .01:
+            print numpy.linalg.norm(goal - step_point)
+            if self.is_state_valid:
+                step_point = step_point + step_vector
+            else:
+                print "collision"
+                return False
+
+        return True
+
     def motion_plan(self, q_start, q_goal, q_min, q_max):
 
-        # Replace this with your code
-        q_list = [q_start, q_goal]
+        tree = [q_start]
 
-        return q_list
+        q_zero = numpy.asarray([ 0.,  0.,  0.,  0.,  0.,  0.,  0.])
+        q_ones = numpy.asarray([ 0.,  0.,  0.,  0.,  0.,  0.,  0.])
+        q_two = numpy.asarray([ 0.,  0.,  0.,  0.,  0.,  0.,  0.])
+        q_three = numpy.asarray([ 0.,  0.,  0.,  0.,  0.,  0.,  0.])
+
+        print "=" * 100
+        print "q_start", q_start
+        print "q_goal", q_goal
+        print "=" * 100
+
+        # Replace this with your code
+
+        goal = self.check_clear_to_goal(q_start, q_goal)
+        print goal
+
+        """
+        else:
+
+            print "else"
+            goal = False
+            while not goal:
+
+                random_point = (q_max[0] - q_min[0]) * numpy.random.rand(7, ) + (q_min)
+                closest_point = self.get_closest_point(tree, random_point)
+                target_point = self.get_target_point(closest_point, random_point)
+                tree.append(target_point)
+                goal = self.check_clear_to_goal(q_start, q_goal)
+        """
+        #tree.append(q_start)
+        tree.append(q_zero)
+        return tree
 
     def create_trajectory(self, q_list, v_list, a_list, t):
         joint_trajectory = trajectory_msgs.msg.JointTrajectory()
