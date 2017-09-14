@@ -29,7 +29,7 @@ def convert_to_trans_message(T):
     t.rotation.x = orientation[0]
     t.rotation.y = orientation[1]
     t.rotation.z = orientation[2]
-    t.rotation.w = orientation[3]        
+    t.rotation.w = orientation[3]
     return t
 
 def convert_from_message(msg):
@@ -37,8 +37,8 @@ def convert_from_message(msg):
                                               msg.orientation.y,
                                               msg.orientation.z,
                                               msg.orientation.w))
-    T = tf.transformations.translation_matrix((msg.position.x, 
-                                               msg.position.y, 
+    T = tf.transformations.translation_matrix((msg.position.x,
+                                               msg.position.y,
                                                msg.position.z))
     return numpy.dot(T,R)
 
@@ -57,12 +57,12 @@ class Grader(object):
         self.mutex = Lock()
 
         # Publisher to send commands
-        self.pub_command = rospy.Publisher("/motion_planning_goal", geometry_msgs.msg.Transform, 
-                                           queue_size=1)        
+        self.pub_command = rospy.Publisher("/motion_planning_goal", geometry_msgs.msg.Transform,
+                                           queue_size=1)
         self.listener = tf.TransformListener()
 
         # Subscribes to information about what the current joint values are.
-        rospy.Subscriber("/joint_states", sensor_msgs.msg.JointState, 
+        rospy.Subscriber("/joint_states", sensor_msgs.msg.JointState,
                          self.joint_states_callback)
 
         # Publisher to set robot position
@@ -71,9 +71,9 @@ class Grader(object):
 
         # Wait for validity check service
         rospy.wait_for_service("check_state_validity")
-        self.state_valid_service = rospy.ServiceProxy('check_state_validity',  
+        self.state_valid_service = rospy.ServiceProxy('check_state_validity',
                                                       moveit_msgs.srv.GetStateValidity)
-        
+
         self.reset_robot()
 
     def joint_states_callback(self, joint_state):
@@ -88,7 +88,7 @@ class Grader(object):
         req.robot_state.joint_state = joint_state
         res = self.state_valid_service(req)
         return res.valid
-       
+
         #Resets the robot to a known pose
     def reset_robot(self):
         cmd = JointState()
@@ -106,7 +106,7 @@ class Grader(object):
         self.server.setPose("move_arm_marker", convert_to_message(T))
         self.server.applyChanges()
         self.pub_command.publish(convert_to_trans_message(T))
-        print 'Goal published'        
+        print 'Goal published'
         start_time = time.time()
         done = False
         while not done and not rospy.is_shutdown():
@@ -118,16 +118,16 @@ class Grader(object):
                 print 'COLLISION!'
 
             try:
-                (trans,rot) = self.listener.lookupTransform('world_link','lwr_arm_7_link',
+                (trans,rot) = self.listener.lookupTransform('/world_link','lwr_arm_7_link',
                                                             rospy.Time(0))
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 print "TF Exception!"
                 continue
 
-            TR = numpy.dot(tf.transformations.translation_matrix(trans), 
+            TR = numpy.dot(tf.transformations.translation_matrix(trans),
                            tf.transformations.quaternion_matrix(rot))
-            
-            if (is_same(T, TR)): 
+
+            if (is_same(T, TR)):
                 print name + ": Reached goal"
                 done = True
 

@@ -63,13 +63,13 @@ class MoveArm(object):
         self.num_joints = 7
         self.q_min = []
         self.q_max = []
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
-        self.q_min.append(-3.1459);self.q_max.append(3.1459)
+        self.q_min.append(-3.14159);self.q_max.append(3.14159)
+        self.q_min.append(-3.14159);self.q_max.append(3.14159)
+        self.q_min.append(-3.14159);self.q_max.append(3.14159)
+        self.q_min.append(-3.14159);self.q_max.append(3.14159)
+        self.q_min.append(-3.14159);self.q_max.append(3.14159)
+        self.q_min.append(-3.14159);self.q_max.append(3.14159)
+        self.q_min.append(-3.14159);self.q_max.append(3.14159)
         # How finely to sample each joint
         self.q_sample = [0.05, 0.05, 0.05, 0.1, 0.1, 0.1, 0.1]
         self.joint_names = ["lwr_arm_0_joint",
@@ -186,93 +186,67 @@ class MoveArm(object):
         res = self.state_valid_service(req)
         return res.valid
 
-
-    def get_closest_point(self, tree, random_point):
+    def get_closest_node(self, tree, random):
         closest_dist = float("inf")
-        closest_point = None
-        for point in tree:
-            dist = numpy.linalg.norm(random_point - point)
+        closest = None
+        i = 0
+        for node in tree:
+            i += 1
+            dist = numpy.linalg.norm(random - node.q)
             if dist < closest_dist:
                 closest_dist = dist
-                closest_point = point
-        return closest_point
+                closest = node
+        return closest
 
-    def get_target_point(self, closest_point, random_point):
-        vector = random_point - closest_point
-        unit_vector = vector / numpy.linalg.norm(vector)
+    def get_q_target(self, closest, random):
+        v = random - closest
+        v_hat = v / numpy.linalg.norm(v)
+        target_v = v_hat * 0.5
+        target = closest + target_v
+        return target
 
-        target_vector = unit_vector * 0.5
-        target_point = closest_point + target_vector
-
-        print "old target_point", target_point
-
-        step_vector = unit_vector * .05
-        step_point = closest_point
-
-        while numpy.linalg.norm(target_point - step_point) > .05:
-            if self.is_state_valid:
-                step_point = step_point + step_vector
-            else:
-                step_point = step_point - step_vector
-                print "collision"
-                break
-
-        return step_point
-
-    def check_clear_to_goal(self, point, goal):
-        vector = goal - point
-        print vector
-        unit_vector = vector / numpy.linalg.norm(vector)
-        print unit_vector
-
-        step_vector = unit_vector * .01
-        step_point = point
-
-        while numpy.linalg.norm(goal - step_point) > .01:
-            print numpy.linalg.norm(goal - step_point)
-            if self.is_state_valid:
-                step_point = step_point + step_vector
-            else:
-                print "collision"
+    def no_collision(self, start, end):
+        n = 50
+        step = (end - start) / n
+        q = numpy.copy(start)
+        for i in range(n):
+            q += step
+            if not self.is_state_valid(q):
                 return False
-
         return True
 
+    def get_path(self, closest_node, q_target):
+        path = [q_target]
+        current_node = closest_node
+        while not current_node.parent == -1:
+            path.append(current_node.q)
+            current_node = current_node.parent
+        return path
+
     def motion_plan(self, q_start, q_goal, q_min, q_max):
+        tree = [Node(-1, q_start, 0)]
+        found = False
+        path = []
+        i = 0
+        while not found:
+            i += 1
+            q_random = (q_max[0] - q_min[0]) * numpy.random.rand(7, ) + (q_min)
+            closest_node = self.get_closest_node(tree, q_random)
+            q_target = self.get_q_target(closest_node.q, q_random)
+            if self.no_collision(closest_node.q, q_target):
+                if self.no_collision(q_target, q_goal):
+                    path = self.get_path(closest_node, q_target)
+                    found = True
+                else:
+                    tree.append(Node(closest_node, q_target, i))
+                    found = False
 
-        tree = [q_start]
+        path.append(q_start)
+        path.reverse()
+        path.append(q_goal)
+        path = self.trim_path(path)
 
-        q_zero = numpy.asarray([ 0.,  0.,  0.,  0.,  0.,  0.,  0.])
-        q_ones = numpy.asarray([ 0.,  0.,  0.,  0.,  0.,  0.,  0.])
-        q_two = numpy.asarray([ 0.,  0.,  0.,  0.,  0.,  0.,  0.])
-        q_three = numpy.asarray([ 0.,  0.,  0.,  0.,  0.,  0.,  0.])
-
-        print "=" * 100
-        print "q_start", q_start
-        print "q_goal", q_goal
-        print "=" * 100
-
-        # Replace this with your code
-
-        goal = self.check_clear_to_goal(q_start, q_goal)
-        print goal
-
-        """
-        else:
-
-            print "else"
-            goal = False
-            while not goal:
-
-                random_point = (q_max[0] - q_min[0]) * numpy.random.rand(7, ) + (q_min)
-                closest_point = self.get_closest_point(tree, random_point)
-                target_point = self.get_target_point(closest_point, random_point)
-                tree.append(target_point)
-                goal = self.check_clear_to_goal(q_start, q_goal)
-        """
-        #tree.append(q_start)
-        tree.append(q_zero)
-        return tree
+        return path
 
     def create_trajectory(self, q_list, v_list, a_list, t):
         joint_trajectory = trajectory_msgs.msg.JointTrajectory()
@@ -326,6 +300,12 @@ class MoveArm(object):
 
     def execute(self, joint_trajectory):
         self.pub_trajectory.publish(joint_trajectory)
+
+class Node(object):
+    def __init__(self, parent, q, count):
+        self.parent = parent
+        self.q = q
+        self.count = count
 
 if __name__ == '__main__':
     moveit_commander.roscpp_initialize(sys.argv)
